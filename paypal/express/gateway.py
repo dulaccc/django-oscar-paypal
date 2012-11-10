@@ -121,6 +121,14 @@ def set_txn(basket, shipping_methods, currency, return_url, cancel_url, update_u
         params['L_PAYMENTREQUEST_0_AMT%d' % index] = line.unit_price_incl_tax
         params['L_PAYMENTREQUEST_0_QTY%d' % index] = line.quantity
 
+    # Discounts
+    total_discount = basket.total_discount
+    if total_discount:
+        index += 1
+        params['L_PAYMENTREQUEST_0_DESC%d' % index] = getattr(settings, 'PAYPAL_DISCOUNT_LINE_DESCRIPTION', "Discount")
+        params['L_PAYMENTREQUEST_0_AMT%d' % index] = -total_discount
+        params['L_PAYMENTREQUEST_0_QTY%d' % index] = 1
+
     # We include tax in the prices rather than separately as that's how it's
     # done on most British/Australian sites.  Will need to refactor in the
     # future no doubt
