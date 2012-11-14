@@ -1,6 +1,7 @@
 import urllib
 import logging
 from decimal import Decimal as D
+from decimal import ROUND_HALF_EVEN
 
 from django.conf import settings
 from django.template.defaultfilters import truncatewords
@@ -100,7 +101,7 @@ def set_txn(basket, shipping_methods, currency, return_url, cancel_url, update_u
     # PayPal have an upper limit on transactions.  It's in dollars which is
     # a fiddly to work with.  Lazy solution - only check when dollars are used as
     # the PayPal currency.
-    amount = basket.total_incl_tax
+    amount = basket.total_incl_tax.quantize(D('.01'), rounding=ROUND_HALF_EVEN) # ensure that there is no more digits
     if currency == 'USD' and amount > 10000:
         raise exceptions.PayPalError('PayPal can only be used for orders up to 10000 USD')
 
@@ -118,7 +119,7 @@ def set_txn(basket, shipping_methods, currency, return_url, cancel_url, update_u
         params['L_PAYMENTREQUEST_0_NAME%d' % index] = product.get_title()
         params['L_PAYMENTREQUEST_0_NUMBER%d' % index] = product.upc
         params['L_PAYMENTREQUEST_0_DESC%d' % index] = truncatewords(product.description, 12)
-        params['L_PAYMENTREQUEST_0_AMT%d' % index] = line.unit_price_incl_tax
+        params['L_PAYMENTREQUEST_0_AMT%d' % index] = line.unit_price_incl_tax.quantize(D('.01'), rounding=ROUND_HALF_EVEN) # ensure that there is no more digits
         params['L_PAYMENTREQUEST_0_QTY%d' % index] = line.quantity
 
     # Discounts
@@ -132,7 +133,7 @@ def set_txn(basket, shipping_methods, currency, return_url, cancel_url, update_u
     # We include tax in the prices rather than separately as that's how it's
     # done on most British/Australian sites.  Will need to refactor in the
     # future no doubt
-    params['PAYMENTREQUEST_0_ITEMAMT'] = basket.total_incl_tax
+    params['PAYMENTREQUEST_0_ITEMAMT'] = amount
     params['PAYMENTREQUEST_0_TAXAMT'] = D('0.00')
 
     # Customer services number
