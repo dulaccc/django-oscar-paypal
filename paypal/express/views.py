@@ -83,8 +83,8 @@ class RedirectView(CheckoutSessionMixin, RedirectView):
             params['host'] = self.request.META['HTTP_HOST']
 
         scheme = getattr(settings, 'PAYPAL_RETURN_URL_SCHEME', 'https')
-        if settings.DEBUG:
-            scheme = 'http'
+        # if settings.DEBUG:
+        #     scheme = 'http'
         params['scheme'] = scheme
 
         if user.is_authenticated():
