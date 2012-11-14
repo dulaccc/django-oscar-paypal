@@ -56,16 +56,21 @@ class RedirectView(CheckoutSessionMixin, RedirectView):
         user = self.request.user
         if self.as_payment_method:
             shipping_addr = self.get_shipping_address()
-            if not shipping_addr:
+            print self.checkout_session, self.checkout_session.__module__
+            if not shipping_addr and not self.checkout_session.is_shipping_method_a_not_required_instance():
                 messages.error(self.request,
                                "A shipping address must be specified")
                 return reverse('checkout:shipping-address')
+
             shipping_method = self.get_shipping_method()
             if not shipping_method:
                 messages.error(self.request,
                                "A shipping method must be specified")
                 return reverse('checkout:shipping-method')
-            params['shipping_address'] = shipping_addr
+
+            if not self.checkout_session.is_shipping_method_a_not_required_instance():
+                params['shipping_address'] = shipping_addr
+
             params['shipping_method'] = shipping_method
             params['shipping_methods'] = []
         else:
