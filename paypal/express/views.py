@@ -56,7 +56,6 @@ class RedirectView(CheckoutSessionMixin, RedirectView):
         user = self.request.user
         if self.as_payment_method:
             shipping_addr = self.get_shipping_address()
-            print self.checkout_session, self.checkout_session.__module__
             if not shipping_addr and not self.checkout_session.is_shipping_method_a_not_required_instance():
                 messages.error(self.request,
                                "A shipping address must be specified")
@@ -184,13 +183,16 @@ class SuccessResponseView(PaymentDetailsView):
             'active_address_fields': filter(bool, shipping_address_fields),
             'notes': self.txn.value('NOTETEXT'),
         }
-        ctx['shipping_method'] = {
-            'name': self.txn.value('SHIPPINGOPTIONNAME'),
-            'description': '',
-            'basket_charge_incl_tax': D(self.txn.value('SHIPPINGAMT')),
-        }
+        shipping_method = self.get_shipping_method()
+        if shipping_method:
+            ctx['shipping_method'] = shipping_method
+        else:    
+            ctx['shipping_method'] = {
+                'name': self.txn.value('SHIPPINGOPTIONNAME'),
+                'description': '',
+                'basket_charge_incl_tax': D(self.txn.value('SHIPPINGAMT')),
+            }
         ctx['order_total_incl_tax'] = D(self.txn.value('PAYMENTREQUEST_0_AMT'))
-
         return ctx
 
     def handle_payment(self, order_number, total_incl_tax, **kwargs):
@@ -225,6 +227,9 @@ class SuccessResponseView(PaymentDetailsView):
         """
         # Determine names - PayPal uses a single field
         ship_to_name = self.txn.value('PAYMENTREQUEST_0_SHIPTONAME')
+        if not ship_to_name:
+            return
+
         first_name = last_name = None
         parts = ship_to_name.split()
         if len(parts) == 1:
@@ -247,12 +252,14 @@ class SuccessResponseView(PaymentDetailsView):
         """
         Return the shipping method used
         """
-        charge = D(self.txn.value('PAYMENTREQUEST_0_SHIPPINGAMT'))
-        method = FixedPrice(charge)
-        basket = basket if basket else self.request.basket
-        method.set_basket(basket)
-        method.name = self.txn.value('SHIPPINGOPTIONNAME')
-        return method
+        if self.txn.value('SHIPPINGOPTIONNAME'):
+            charge = D(self.txn.value('PAYMENTREQUEST_0_SHIPPINGAMT'))
+            method = FixedPrice(charge)
+            basket = basket if basket else self.request.basket
+            method.set_basket(basket)
+            method.name = self.txn.value('SHIPPINGOPTIONNAME')
+            return method
+        return super(SuccessResponseView, self).get_shipping_method(basket)
 
 
 class ShippingOptionsView(View):

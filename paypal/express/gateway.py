@@ -199,6 +199,8 @@ def set_txn(basket, shipping_methods, currency, return_url, cancel_url, update_u
         params['SHIPTOSTATE'] = shipping_address.state
         params['SHIPTOZIP'] = shipping_address.postcode
         params['SHIPTOCOUNTRYCODE'] = shipping_address.country.iso_3166_1_a2
+    else:
+        params['NOSHIPPING'] = 1
 
     # Allow customer to specify a shipping note
     allow_note = getattr(settings, 'PAYPAL_ALLOW_NOTE', True)
@@ -208,19 +210,20 @@ def set_txn(basket, shipping_methods, currency, return_url, cancel_url, update_u
     # Shipping charges
     params['PAYMENTREQUEST_0_SHIPPINGAMT'] = D('0.00')
     max_charge = D('0.00')
-    for index, method in enumerate(shipping_methods):
-        is_default = index == 0
-        params['L_SHIPPINGOPTIONISDEFAULT%d' % index] = 'true' if is_default else 'false'
-        charge = method.basket_charge_incl_tax()
-        if charge > max_charge:
-            max_charge = charge
-        if is_default:
-            params['PAYMENTREQUEST_0_SHIPPINGAMT'] = charge
-        params['L_SHIPPINGOPTIONNAME%d' % index] = method.name
-        params['L_SHIPPINGOPTIONAMOUNT%d' % index] = charge
-
-    # Set shipping charge explicitly if it has been passed
-    if shipping_method:
+    if not shipping_method:
+        for index, method in enumerate(shipping_methods):
+            is_default = index == 0
+            params['L_SHIPPINGOPTIONISDEFAULT%d' % index] = 'true' if is_default else 'false'
+            charge = method.basket_charge_incl_tax()
+            if charge > max_charge:
+                max_charge = charge
+            if is_default:
+                params['PAYMENTREQUEST_0_SHIPPINGAMT'] = charge
+                params['PAYMENTREQUEST_0_AMT'] += charge
+            params['L_SHIPPINGOPTIONNAME%d' % index] = method.name
+            params['L_SHIPPINGOPTIONAMOUNT%d' % index] = charge
+    else:
+        # Set shipping charge explicitly if it has been passed
         max_charge = charge = shipping_method.basket_charge_incl_tax()
         params['PAYMENTREQUEST_0_SHIPPINGAMT'] = charge
         params['PAYMENTREQUEST_0_AMT'] += charge
