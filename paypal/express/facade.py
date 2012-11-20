@@ -13,9 +13,16 @@ from paypal.express.gateway import (
 )
 
 
-def _get_payment_action():
+def _get_set_txn_payment_action():
     # PayPal supports 3 actions: 'Sale', 'Authorization', 'Order'
-    action = getattr(settings, 'PAYPAL_PAYMENT_ACTION', SALE)
+    action = getattr(settings, 'PAYPAL_SET_TXN_PAYMENT_ACTION', AUTHORIZATION)
+    if action not in (SALE, AUTHORIZATION, ORDER):
+        raise ImproperlyConfigured("'%s' is not a valid payment action" % action)
+    return action
+
+def _get_do_txn_payment_action():
+    # PayPal supports 3 actions: 'Sale', 'Authorization', 'Order'
+    action = getattr(settings, 'PAYPAL_DO_TXN_PAYMENT_ACTION', SALE)
     if action not in (SALE, AUTHORIZATION, ORDER):
         raise ImproperlyConfigured("'%s' is not a valid payment action" % action)
     return action
@@ -58,7 +65,7 @@ def get_paypal_url(basket, shipping_methods, user=None, shipping_address=None,
                    return_url=return_url,
                    cancel_url=cancel_url,
                    update_url=update_url,
-                   action=_get_payment_action(),
+                   action=_get_set_txn_payment_action(),
                    shipping_method=shipping_method,
                    shipping_address=shipping_address,
                    user=user,
@@ -77,7 +84,7 @@ def confirm_transaction(payer_id, token, amount, currency):
     Confirm the payment action.
     """
     return do_txn(payer_id, token, amount, currency,
-                  action=_get_payment_action())
+                  action=_get_do_txn_payment_action())
 
 
 def refund_transaction(token, amount, currency, note=None):

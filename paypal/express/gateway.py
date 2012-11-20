@@ -114,6 +114,7 @@ def set_txn(basket, shipping_methods, currency, return_url, cancel_url, update_u
     }
 
     # Add item details
+    index = 0
     for index, line in enumerate(basket.all_lines()):
         product = line.product
         params['L_PAYMENTREQUEST_0_NAME%d' % index] = product.get_title()

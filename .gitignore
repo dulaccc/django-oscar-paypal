@@ -1,3 +1,5 @@
+.DS_Store
+venv
 htmlcov
 dist
 integration.py
