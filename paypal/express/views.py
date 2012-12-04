@@ -217,7 +217,8 @@ class SuccessResponseView(PaymentDetailsView):
         source = Source(source_type=source_type,
                         currency=txn.currency,
                         amount_allocated=txn.amount,
-                        amount_debited=txn.amount)
+                        amount_debited=txn.amount,
+                        reference=txn.correlation_id)
         self.add_payment_source(source)
 
     def create_shipping_address(self, basket=None):
